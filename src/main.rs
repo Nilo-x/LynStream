@@ -1,16 +1,14 @@
+mod handlers;
 mod storage_stream;
 
-use axum::{
-    routing::delete,
-    routing::get,
-    routing::put,
-    Router,
-};
+use axum::{Router, routing::delete, routing::get, routing::put};
 use bytes::Bytes;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::broadcast;
 use tokio::sync::RwLock;
+use tokio::sync::broadcast;
+
+use handlers::{handle_delete, handle_read, handle_write};
 
 type Storage = Arc<RwLock<HashMap<String, (Vec<u8>, broadcast::Sender<Bytes>)>>>;
 
@@ -18,29 +16,18 @@ type Storage = Arc<RwLock<HashMap<String, (Vec<u8>, broadcast::Sender<Bytes>)>>>
 async fn main() {
     println!("Starting http-optimized-storage-server");
 
+    let storage: Storage = Arc::new(RwLock::new(HashMap::new()));
+
     let app = Router::new()
-        .route("/", get(|| async { "This is my first server endpoint" }))
-        .route("/read", get(|| handle_read()))
-        .route("/write", put(|| handle_write()))
-        .route("/delete", delete(|| handle_delete()));
+        .route(
+            "/",
+            get(|| async { "This is my optimized video http server and we are live baby!" }),
+        )
+        .route("/read", get(handle_read))
+        .route("/{*path}", put(handle_write))
+        .route("/delete", delete(handle_delete))
+        .with_state(storage);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn handle_read() -> &'static str
-{
-    "This is going to be my read method"
-}
-
-async fn handle_write() -> &'static str
-{
-    println!("This is going to be my write method");
-    "This is going to be my write method"
-}
-
-async fn handle_delete() -> &'static str
-{
-    "This is going to be my delete method"
 }
