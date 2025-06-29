@@ -3,7 +3,8 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use futures_util::StreamExt;
 use tokio::sync::broadcast;
-use crate::Storage;
+
+use crate::memory_storage::types::Storage;
 
 pub async fn handle_write(
     Path(path): Path<String>,
@@ -17,7 +18,7 @@ pub async fn handle_write(
     let sender = {
         let mut storage_guard = storage.write().await;
         let (_, sender) = storage_guard.entry(path.clone()).or_insert_with(|| {
-            let (tx, rx) = broadcast::channel(1024);
+            let (tx, _) = broadcast::channel(1024);
             (Vec::new(), tx)
         });
         sender.clone()
@@ -40,7 +41,7 @@ pub async fn handle_write(
 
                 let _ = sender.send(chunk);
             }
-            Err(e) => return Err(StatusCode::BAD_REQUEST),
+            Err(_) => return Err(StatusCode::BAD_REQUEST),
         }
     }
 

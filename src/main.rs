@@ -1,16 +1,13 @@
 mod handlers;
-mod storage_stream;
+mod memory_storage;
 
-use axum::{Router, routing::delete, routing::get, routing::put};
-use bytes::Bytes;
+use handlers::{handle_delete, handle_read, handle_write};
+use memory_storage::types::Storage;
+
+use axum::{routing::delete, routing::get, routing::put, Router};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::sync::broadcast;
-
-use handlers::{handle_delete, handle_read, handle_write};
-
-type Storage = Arc<RwLock<HashMap<String, (Vec<u8>, broadcast::Sender<Bytes>)>>>;
 
 #[tokio::main]
 async fn main() {
@@ -19,11 +16,8 @@ async fn main() {
     let storage: Storage = Arc::new(RwLock::new(HashMap::new()));
 
     let app = Router::new()
-        .route(
-            "/",
-            get(|| async { "This is my optimized video http server and we are live baby!" }),
-        )
-        .route("/read", get(handle_read))
+        .route("/", get(|| async { "This is my optimized video http server and we are live baby!" }), )
+        .route("/{*path}", get(handle_read))
         .route("/{*path}", put(handle_write))
         .route("/delete", delete(handle_delete))
         .with_state(storage);

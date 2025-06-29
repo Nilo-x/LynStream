@@ -1,11 +1,11 @@
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use bytes::Bytes;
 use futures_util::Stream;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
 
-struct StorageStream {
+pub struct StorageStream {
     stored_data: Vec<u8>,
     stored_position: usize,
     live_stream: BroadcastStream<Bytes>,
@@ -13,7 +13,7 @@ struct StorageStream {
 }
 
 impl StorageStream {
-    fn new(stored_data: Vec<u8>, live_receiver: broadcast::Receiver<Bytes>) -> Self {
+    pub fn new(stored_data: Vec<u8>, live_receiver: broadcast::Receiver<Bytes>) -> Self {
         Self {
             stored_data,
             stored_position: 0,
@@ -30,12 +30,13 @@ impl Stream for StorageStream {
         if self.stored_position < self.stored_data.len() {
             let chunk_size = std::cmp::min(8192, self.stored_data.len() - self.stored_position);
             let end_position = self.stored_position + chunk_size;
-            let chunk = Bytes::copy_from_slice(&self.stored_data[self.stored_position..end_position]);
+            let chunk =
+                Bytes::copy_from_slice(&self.stored_data[self.stored_position..end_position]);
             self.stored_position = end_position;
-            return Poll::Ready(Some(Ok(chunk)))
+            return Poll::Ready(Some(Ok(chunk)));
         }
 
-        if !self.finished{
+        if !self.finished {
             match Pin::new(&mut self.live_stream).poll_next(cx) {
                 Poll::Ready(Some(Ok(bytes))) => Poll::Ready(Some(Ok(bytes))),
                 Poll::Ready(Some(Err(_))) => {
@@ -46,10 +47,12 @@ impl Stream for StorageStream {
                     self.finished = true;
                     Poll::Ready(None)
                 }
-                Poll::Pending => Poll::Pending
+                Poll::Pending => {
+                    self.finished = true;
+                    Poll::Ready(None)
+                }
             }
-        }
-        else {
+        } else {
             Poll::Ready(None)
         }
     }
