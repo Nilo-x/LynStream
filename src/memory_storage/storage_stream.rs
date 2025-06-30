@@ -1,6 +1,8 @@
 use bytes::Bytes;
 use futures_util::Stream;
 use std::pin::Pin;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::task::{Context, Poll};
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
@@ -9,16 +11,22 @@ pub struct StorageStream {
     stored_data: Vec<u8>,
     stored_position: usize,
     live_stream: BroadcastStream<Bytes>,
+    is_upload_complete: Arc<AtomicBool>,
     finished: bool,
 }
 
 impl StorageStream {
-    pub fn new(stored_data: Vec<u8>, live_receiver: broadcast::Receiver<Bytes>) -> Self {
+    pub fn new(
+        stored_data: Vec<u8>,
+        live_receiver: broadcast::Receiver<Bytes>,
+        is_upload_complete: Arc<AtomicBool>,
+    ) -> Self {
         Self {
             stored_data,
             stored_position: 0,
             live_stream: BroadcastStream::new(live_receiver),
             finished: false,
+            is_upload_complete,
         }
     }
 }
@@ -48,8 +56,12 @@ impl Stream for StorageStream {
                     Poll::Ready(None)
                 }
                 Poll::Pending => {
-                    self.finished = true;
-                    Poll::Ready(None)
+                    if self.is_upload_complete.load(Ordering::Relaxed) {
+                        self.finished = true;
+                        Poll::Ready(None)
+                    } else {
+                        Poll::Pending
+                    }
                 }
             }
         } else {
