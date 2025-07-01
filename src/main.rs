@@ -14,10 +14,9 @@ async fn main() {
     println!("Starting http-optimized-storage-server");
 
     let storage: Storage = Arc::new(RwLock::new(HashMap::new()));
-    // TODO: dodelat delete handle
+    // TODO: co se deje kdyz uploadnu dvakrat stejnou path?
     // TODO: dodelat any requst handle
     // TODO: dodelat featuru pro list prave ulozenych dat
-
     // TODO: mozna front-end treba v tauri ? (asi faze 2.0 projektu)
     let app = Router::new()
         .route(
@@ -26,7 +25,7 @@ async fn main() {
         )
         .route("/{*path}", get(handle_read))
         .route("/{*path}", put(handle_write))
-        .route("/delete", delete(handle_delete))
+        .route("/{*path}", delete(handle_delete))
         .with_state(storage);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
