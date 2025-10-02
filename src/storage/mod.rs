@@ -1,3 +1,5 @@
+use std::future::Future;
+
 use crate::error::AppError;
 use bytes::Bytes;
 

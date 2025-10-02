@@ -1,14 +1,13 @@
 [package]
 name = "http-video-storage-server"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 axum = { version = "0.8.4", features = ["macros"] }
 tokio = { version = "1.45.1", features = ["rt-multi-thread", "net", "sync", "macros"] }
 bytes = "1.10.1"
 tokio-stream = { version = "0.1.17", features = ["sync"] }
-futures-util = "0.3.31"
 serde = { version = "1.0.228", features = ["derive"] }
 async-stream = "0.3.6"
 ringbuffer = "0.16.0"
