@@ -1,7 +1,10 @@
 use bytes::Bytes;
+use serde::Serialize;
+use tokio::sync::broadcast;
 
 use crate::{error::AppError, storage::StorageBackend};
 
+#[derive(Debug, Clone, Serialize)]
 pub struct VideoMetadata {
     pub name: String,
     pub size: usize,
@@ -35,6 +38,18 @@ impl<S: StorageBackend> VideoService<S> {
 
     pub async fn list(&self) -> Result<Vec<String>, AppError> {
         self.storage.list().await
+    }
+
+    pub async fn append_chunk(&mut self, name: &str, chunk: Bytes) -> Result<(), AppError> {
+        self.storage.append(name.to_string(), chunk).await
+    }
+
+    pub async fn subscribe(&self, name: &str) -> broadcast::Receiver<Bytes> {
+        self.storage.subscribe(name).await
+    }
+
+    pub async fn get_buffer(&self, name: &str) -> Vec<Bytes> {
+        self.storage.get_buffer(name).await
     }
 }
 

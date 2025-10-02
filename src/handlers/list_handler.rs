@@ -1,16 +1,9 @@
-use crate::memory_storage::types::Storage;
-use axum::extract::State;
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::Json;
+use axum::{Json, extract::State};
 
-pub async fn handle_list(State(storage): State<Storage>) -> Result<impl IntoResponse, StatusCode> {
-    println!("Received http GET request for list");
+use crate::{app::AppState, error::AppError};
 
-    let x = storage.read().await.clone();
-
-    let mut content_list = Vec::new();
-    x.iter().for_each(|(k, _)| content_list.push(k.clone()));
-    
-    Ok(Json(content_list))
+pub async fn handle_list(State(state): State<AppState>) -> Result<Json<Vec<String>>, AppError> {
+    let svc = state.lock().await;
+    let keys = svc.list().await?;
+    Ok(Json(keys))
 }
